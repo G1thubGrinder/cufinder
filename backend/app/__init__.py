@@ -3,6 +3,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 
 from .config import get_config
+from .db import get_client
 from .errors import register_error_handlers
 
 
@@ -22,6 +23,7 @@ def create_app() -> Flask:
 
     @app.get("/api/health")
     def health():
+        get_client().admin.command("ping")
         return jsonify({"status": "ok"})
 
     return app
