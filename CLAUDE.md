@@ -88,7 +88,7 @@ Because frontend and backend ship in parallel, the API contract is the integrati
 Scaffolding doesn't exist yet — fill these in once it does:
 
 - `frontend/`: `npm install && npm run dev`
-- `backend/`: `python -m venv .venv && source .venv/Scripts/activate && pip install -r requirements.txt && flask --app app run --debug`
+- `backend/`: `python -m venv .venv && source .venv/Scripts/activate && pip install -r requirements.txt && flask --app app run --debug --port 5001` (port 5001 is required — it's what the Google OAuth redirect URI and the Vite dev proxy both expect)
 - Required env: `MONGODB_URI` pointing at local Mongo or an Atlas cluster, plus a `SESSION_SECRET` for signing cookies.
 
 ## Deployment (nice-to-have, not required)

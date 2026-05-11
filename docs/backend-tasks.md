@@ -144,7 +144,7 @@ After P's skeleton merges:
 
 1. `tests/test_auth_guards.py` — `require_user`, `require_web_admin`, `require_any_admin` happy path + each failure mode.
 2. `tests/test_images.py` — mime rejection, size rejection, happy upload + read-back.
-3. `backend/README.md` — how to run locally (env vars, `flask --app app run --debug`, where to put `.env`, how to run `seed.py`, how to run pytest). Mirror the snippet in `CLAUDE.md` "Running locally".
+3. `backend/README.md` — how to run locally (env vars, `flask --app app run --debug --port 5001`, where to put `.env`, how to run `seed.py`, how to run pytest). Mirror the snippet in `CLAUDE.md` "Running locally".
 4. Spare cycles: pick up any bug from P's triage list.
 
 ### Day 5 (Fri 2026-05-15) — bug bash
