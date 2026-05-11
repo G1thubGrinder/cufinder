@@ -24,9 +24,11 @@ def create_app() -> Flask:
     # Lazy imports avoid circular import issues at module load time.
     from .auth.routes import auth_bp
     from .items.routes import items_bp
+    from .locations.routes import locations_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(items_bp)
+    app.register_blueprint(locations_bp)
 
     @app.get("/api/health")
     def health():
