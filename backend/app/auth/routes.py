@@ -51,9 +51,11 @@ def google_login():
 
 @auth_bp.get("/callback")
 def google_callback():
-    # CSRF guard
+    # CSRF guard — both must be non-empty AND match (an attacker hitting
+    # /callback directly would otherwise pass with state="" on both sides).
     state = request.args.get("state", "")
-    if state != session.pop("oauth_state", ""):
+    stored = session.pop("oauth_state", "")
+    if not stored or state != stored:
         return redirect(_frontend("/login?error=invalid_state"))
 
     if request.args.get("error"):
