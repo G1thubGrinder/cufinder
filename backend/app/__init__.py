@@ -21,6 +21,13 @@ def create_app() -> Flask:
 
     register_error_handlers(app)
 
+    # Lazy imports avoid circular import issues at module load time.
+    from .auth.routes import auth_bp
+    from .items.routes import items_bp
+
+    app.register_blueprint(auth_bp)
+    app.register_blueprint(items_bp)
+
     @app.get("/api/health")
     def health():
         get_client().admin.command("ping")

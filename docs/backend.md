@@ -25,7 +25,7 @@ backend/
 │   ├── config.py       # env-var loading + dev/prod config classes
 │   ├── db.py           # MongoDB client + db handle
 │   ├── errors.py       # central exception → JSON error handler
-│   ├── auth/           # blueprint: login, logout, me
+│   ├── auth/           # blueprint: google login, callback, logout, me
 │   ├── items/          # blueprint: list, get, create, status, delete
 │   ├── locations/      # blueprint: list, create, patch, delete
 │   └── images/         # blueprint: upload, stream
@@ -40,7 +40,7 @@ Each phase reuses foundations laid by the previous one. Do not skip ahead.
 
 1. **Skeleton** — `create_app()`, config, Mongo connection, central error handler, CORS, `GET /api/health` returning `{"status":"ok"}`. Goal: prove the server starts and connects to Mongo.
 2. **Locations CRUD** — `GET /api/locations` (public), `POST/PATCH/DELETE /api/locations(/:id)` (web admin only — gate with a stub since auth isn't built yet). This is where we set the patterns for routes, pydantic validation, and JSON error responses.
-3. **Auth** — `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Mock CU email regex from `docs/api.md`. Seed the three admin users on first run. Replace the stub gate from phase 2 with real session checks.
+3. **Auth** — `GET /api/auth/google`, `GET /api/auth/callback`, `POST /api/auth/logout`, `GET /api/auth/me`. Google OAuth restricted to CU emails (regex from `docs/api.md` enforced server-side after Google verifies). Seed the three admin users on first run. Replace the stub gate from phase 2 with real session checks.
 4. **Items** — list with filters, get-one, create, `PATCH /:id/status`, `DELETE /:id`. Wire the role-based authz exactly as `docs/api.md` specifies: web admin can act on any item; location admin only on `found` items where `held_admin_location_id` matches their `admin_location_id`.
 5. **Images** — `POST /api/images` (multipart, GridFS write), `GET /api/images/:id` (stream bytes). 5 MB cap, jpeg/png/webp only.
 6. **Polish** — re-check CORS for the deploy origin, write a backend-local README, optional deploy to Render or Railway.
@@ -63,7 +63,7 @@ A single `register_error_handlers(app)` in `errors.py` wires:
 ### Auth
 - `flask.session` signed with `SESSION_SECRET` from env. Cookie attributes: `HttpOnly`, `SameSite=Lax`, `Secure` in prod.
 - Helpers in `auth/guards.py`: `require_user()`, `require_web_admin()`, `require_any_admin()`. Each reads `session["user_id"]`, looks up the user, and raises `Unauthenticated` / `Forbidden` as needed.
-- No password storage. Login = email matches the CU regex → look up or create the user → set `session["user_id"]`.
+- No password storage. Login = Google OAuth callback → email passes the CU regex → upsert the user (`$setOnInsert` preserves seeded admin roles) → set `session["user_id"]`.
 
 ### Database
 - One MongoDB database. Collections: `users`, `locations`, `items`. GridFS bucket: default `fs`.
@@ -75,8 +75,10 @@ Required:
 - `MONGODB_URI` — e.g. `mongodb://localhost:27017/cufinder`
 - `SESSION_SECRET` — long random string for signing cookies
 - `FRONTEND_ORIGIN` — `http://localhost:5173` in dev, deployed URL in prod
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — OAuth 2.0 Client ID from Google Cloud Console
+- `GOOGLE_REDIRECT_URI` — `http://localhost:5001/api/auth/callback` in dev; in prod must match the URI registered in Google Cloud
 
-`.env.example` ships with placeholders; the real `.env` is gitignored.
+`.env.example` ships with placeholders; the real `.env` is gitignored. Google credentials are shared via team chat, not git.
 
 ### Seeding
 `python seed.py` runs once on a fresh DB. Idempotent — insert locations only if missing by name; insert admin users only if missing by email. The location list and admin emails are in `docs/api.md` under "Seed data".

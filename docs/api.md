@@ -24,7 +24,7 @@ Base URL: `/api`
 ^[^@\s]+@(student\.)?chula\.ac\.th$
 ```
 
-Anything matching this is a valid CU email for mock-login purposes.
+Backend enforces this regex against the email returned by Google OAuth. The `hd=chula.ac.th` domain hint sent to Google is not trusted on its own.
 
 ## Categories (frontend constant, not from API)
 
@@ -109,17 +109,20 @@ Exactly one of `found_location_id` or `found_location_text` must be set. Same ru
 
 ### Auth
 
-#### `POST /api/auth/login`
-Mock login. No password.
+Login is **Google OAuth** restricted to the CU email domain. The browser drives the flow via two redirects; the backend sets the session cookie on the callback and bounces back to the frontend.
 
-Request:
-```json
-{ "email": "someone@student.chula.ac.th" }
-```
+#### `GET /api/auth/google`
+Starts the OAuth flow. Generates a CSRF `state`, stashes it in the session, and `302`-redirects to Google's authorization URL with `scope=openid email profile` and `hd=chula.ac.th` as a domain hint.
 
-Responses:
-- `200 OK` → returns `User`, sets session cookie.
-- `400 validation_failed` → email doesn't match CU regex.
+#### `GET /api/auth/callback`
+Google redirects here with `?code=...&state=...`. Backend:
+1. Verifies `state` matches the session value (CSRF guard).
+2. Exchanges the code for an access token (server-to-server call to Google).
+3. Fetches the userinfo and matches the email against the CU regex.
+4. Upserts the user by email (`$setOnInsert` so seeded admin roles survive re-login).
+5. Sets `session["user_id"]` and `302`-redirects to `FRONTEND_ORIGIN`.
+
+On any failure, redirects to `FRONTEND_ORIGIN/login?error=<code>` where `<code>` is one of `invalid_state`, `access_denied`, `no_code`, `token_failed`, `userinfo_failed`, `not_cu_email`.
 
 #### `POST /api/auth/logout`
 Clears the session cookie. Always `204 No Content`.
@@ -285,4 +288,4 @@ Seed admin emails for development:
 **Web admin** (`role = "web_admin"`, `admin_location_id = null`):
 - `web.admin@chula.ac.th`
 
-Frontend mock mode uses these to demo each admin role.
+These accounts need to be real CU Google accounts to actually log in. Swap any placeholder for a team member's real `@chula.ac.th` email before demo so admin roles can be exercised.

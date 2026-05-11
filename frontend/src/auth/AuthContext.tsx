@@ -8,7 +8,7 @@ export type AuthStatus = "loading" | "ready";
 export interface AuthContextValue {
   user: User | null;
   status: AuthStatus;
-  login: (email: string) => Promise<User>;
+  login: () => void;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -38,10 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email: string) => {
-    const me = await authApi.login(email);
-    setUser(me);
-    return me;
+  const login = useCallback(() => {
+    window.location.href = "/api/auth/google";
   }, []);
 
   const logout = useCallback(async () => {

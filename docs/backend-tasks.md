@@ -74,8 +74,8 @@ Endpoints (full spec in `docs/api.md` §Locations):
 
 You can't run anything yet (skeleton not landed) — write schemas + route shells against `docs/api.md`.
 
-1. `backend/app/auth/schemas.py` — pydantic `LoginRequest` enforcing the CU email regex from `docs/api.md` §"CU email regex": `^[^@\s]+@(student\.)?chula\.ac\.th$`.
-2. `backend/app/auth/routes.py` — empty handler stubs for `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Don't register the blueprint yet — P does that on Day 2 once your folder lands.
+1. `backend/app/auth/schemas.py` — module-level `CU_EMAIL_REGEX` compiled from `docs/api.md` §"CU email regex": `^[^@\s]+@(student\.)?chula\.ac\.th$`. No request body model — login is a redirect flow, not a JSON POST.
+2. `backend/app/auth/routes.py` — empty handler stubs for `GET /api/auth/google`, `GET /api/auth/callback`, `POST /api/auth/logout`, `GET /api/auth/me`. Don't register the blueprint yet — P does that on Day 2 once your folder lands.
 3. `backend/app/items/schemas.py` — pydantic `ItemCreate` discriminated by `type: "lost" | "found"`. Enforce the "exactly one of `last_seen_location_id` / `last_seen_location_text`" rule and the parallel rule on the found-side `_location` and `held_*` pairs (per `docs/api.md` §Item).
 4. `backend/app/items/routes.py` — empty handler stubs for the five endpoints in `docs/api.md` §Items.
 
@@ -87,7 +87,7 @@ After P's skeleton merges (~midday):
    - `require_user()` → reads `session["user_id"]`, returns the user dict, raises `Unauthenticated` otherwise.
    - `require_web_admin()` → calls `require_user()`, then checks `role == "web_admin"`, raises `Forbidden` otherwise.
    - `require_any_admin()` → returns the user if role is `web_admin` or `location_admin`.
-2. `backend/app/auth/routes.py` — implement the three endpoints. Login = email matches regex → `users` collection upsert by email → set `session["user_id"]` → return `User` shape. Logout = clear session, `204`. Me = `require_user()` → return `User`.
+2. `backend/app/auth/routes.py` — implement the four endpoints. `GET /api/auth/google` = stash CSRF state in session, redirect to Google with `hd=chula.ac.th`. `GET /api/auth/callback` = verify state, exchange code for token, fetch userinfo, enforce CU regex on the returned email, upsert by email with `$setOnInsert` (preserves seeded admin roles), set `session["user_id"]`, redirect to `FRONTEND_ORIGIN`. On any failure redirect to `FRONTEND_ORIGIN/login?error=<code>`. `POST /api/auth/logout` = clear session, `204`. `GET /api/auth/me` = `require_user()` → return `User`.
 3. Register `auth_bp` in `app/__init__.py` (small PR to P's file, coordinate).
 4. Notify P and Kie on chat that guards are live so they can swap stubs.
 
@@ -144,7 +144,7 @@ After P's skeleton merges:
 
 1. `tests/test_auth_guards.py` — `require_user`, `require_web_admin`, `require_any_admin` happy path + each failure mode.
 2. `tests/test_images.py` — mime rejection, size rejection, happy upload + read-back.
-3. `backend/README.md` — how to run locally (env vars, `flask --app app run --debug`, where to put `.env`, how to run `seed.py`, how to run pytest). Mirror the snippet in `CLAUDE.md` "Running locally".
+3. `backend/README.md` — how to run locally (env vars, `flask --app app run --debug --port 5001`, where to put `.env`, how to run `seed.py`, how to run pytest). Mirror the snippet in `CLAUDE.md` "Running locally".
 4. Spare cycles: pick up any bug from P's triage list.
 
 ### Day 5 (Fri 2026-05-15) — bug bash

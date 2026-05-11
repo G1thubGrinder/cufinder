@@ -50,14 +50,16 @@ The two app directories are independent — each has its own package manager, lo
 
 ## Key architectural decisions
 
-### Auth approach: mock login
+### Auth approach: Google OAuth (CU domain only)
 
-This is intentional for the course project; it is **not** a placeholder for real OAuth.
+Login is **Google OAuth** restricted to the CU email domain. Decided 2026-05-11 after reviewing the original mock-login plan — graders all have `@chula.ac.th` accounts, so OAuth is realistic without gating the demo.
 
-- Login form accepts any email matching the CU domain pattern (e.g. `@student.chula.ac.th`, `@chula.ac.th`). Pick the regex once and put it in `docs/api.md`.
-- A small seed list of emails is flagged as `admin` in the database; everyone else is a regular user.
-- Backend issues a signed session cookie or JWT on successful "login". No password.
-- Do **not** add Google OAuth, real CU SSO, or password flows — out of scope.
+- Frontend redirects the user to `GET /api/auth/google`; backend bounces through Google's consent flow and lands on `GET /api/auth/callback`.
+- Backend validates the email against the CU regex in `docs/api.md` **after** Google verifies it — the `hd=chula.ac.th` hint sent to Google is not trusted on its own.
+- A small seed list of emails is flagged as `location_admin` / `web_admin` in the database; everyone else is a regular user (upserted on first login with `$setOnInsert` so seeded roles survive).
+- Session is a signed cookie (`HttpOnly`, `SameSite=Lax`, `Secure` in prod). No password storage.
+- Required env: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`. See `.env.example`.
+- Do **not** add password flows or non-Google identity providers — still out of scope.
 
 ### Image storage: GridFS
 
@@ -86,7 +88,7 @@ Because frontend and backend ship in parallel, the API contract is the integrati
 Scaffolding doesn't exist yet — fill these in once it does:
 
 - `frontend/`: `npm install && npm run dev`
-- `backend/`: `python -m venv .venv && source .venv/Scripts/activate && pip install -r requirements.txt && flask --app app run --debug`
+- `backend/`: `python -m venv .venv && source .venv/Scripts/activate && pip install -r requirements.txt && flask --app app run --debug --port 5001` (port 5001 is required — it's what the Google OAuth redirect URI and the Vite dev proxy both expect)
 - Required env: `MONGODB_URI` pointing at local Mongo or an Atlas cluster, plus a `SESSION_SECRET` for signing cookies.
 
 ## Deployment (nice-to-have, not required)

@@ -138,6 +138,29 @@
   cursor: pointer;
 }
 
+.googleBtn {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: var(--fs-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.googleBtn:hover {
+  background: #f8f9fa;
+  border-color: #c6c8ca;
+  text-decoration: none;
+}
+
 .backLink {
   text-align: center;
   margin-top: var(--sp-5);

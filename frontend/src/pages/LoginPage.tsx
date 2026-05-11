@@ -1,46 +1,20 @@
-import { useState, type FormEvent } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../auth/useAuth";
-import { ApiError } from "../api/client-error";
-import { CU_EMAIL_REGEX } from "../types";
-import { USE_MOCK } from "../api/client";
+import { Link, useSearchParams } from "react-router-dom";
 import styles from "./LoginPage.module.css";
 
-interface LocationState {
-  from?: string;
-}
+const ERROR_MESSAGES: Record<string, string> = {
+  not_cu_email: "Only Chulalongkorn University accounts (@chula.ac.th / @student.chula.ac.th) are allowed.",
+  invalid_state: "Login failed due to a security check. Please try again.",
+  access_denied: "Login was cancelled.",
+  token_failed: "Could not complete login. Please try again.",
+  userinfo_failed: "Could not retrieve your Google profile. Please try again.",
+};
 
 export default function LoginPage() {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as LocationState | null)?.from ?? "/";
-  const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    const trimmed = email.trim().toLowerCase();
-    if (!CU_EMAIL_REGEX.test(trimmed)) {
-      setError("Please use your CU email (e.g. yourname@student.chula.ac.th).");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      await login(trimmed);
-      navigate(from, { replace: true });
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message);
-      } else {
-        setError("Login failed. Please try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const [searchParams] = useSearchParams();
+  const errorCode = searchParams.get("error");
+  const error = errorCode
+    ? (ERROR_MESSAGES[errorCode] ?? "Login failed. Please try again.")
+    : null;
 
   return (
     <div className={styles.page}>
@@ -49,71 +23,44 @@ export default function LoginPage() {
           <span className={styles.brandMark}>CU</span>Finder
         </Link>
         <h1 className={styles.title}>Sign in</h1>
-        <p className={styles.subtitle}>Use your Chulalongkorn University email to continue.</p>
+        <p className={styles.subtitle}>
+          Use your Chulalongkorn University Google account to continue.
+        </p>
 
-        <form onSubmit={handleSubmit} noValidate>
-          <label className={styles.label} htmlFor="email">
-            CU email
-          </label>
-          <input
-            id="email"
-            className={styles.input}
-            type="email"
-            placeholder="yourname@student.chula.ac.th"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            autoFocus
-            required
-          />
-          {error && <p className={styles.error}>{error}</p>}
-          <button type="submit" className={styles.submit} disabled={submitting}>
-            {submitting ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+        {error && <p className={styles.error}>{error}</p>}
 
-        {USE_MOCK && (
-          <div className={styles.demoBlock}>
-            <p className={styles.demoTitle}>Demo accounts (mock mode)</p>
-            <ul className={styles.demoList}>
-              <li>
-                <button
-                  type="button"
-                  className={styles.demoBtn}
-                  onClick={() => setEmail("library.admin@chula.ac.th")}
-                >
-                  library.admin@chula.ac.th
-                </button>
-                <span> — Library admin</span>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={styles.demoBtn}
-                  onClick={() => setEmail("eng.admin@chula.ac.th")}
-                >
-                  eng.admin@chula.ac.th
-                </button>
-                <span> — Engineering admin</span>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className={styles.demoBtn}
-                  onClick={() => setEmail("student@student.chula.ac.th")}
-                >
-                  student@student.chula.ac.th
-                </button>
-                <span> — Regular user (any CU email works)</span>
-              </li>
-            </ul>
-          </div>
-        )}
+        <a href="/api/auth/google" className={styles.googleBtn}>
+          <GoogleIcon />
+          Sign in with Google
+        </a>
 
         <p className={styles.backLink}>
           <Link to="/">&larr; Back to browse</Link>
         </p>
       </div>
     </div>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#EA4335"
+        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+      />
+      <path
+        fill="#4285F4"
+        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+      />
+      <path
+        fill="#34A853"
+        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+      />
+    </svg>
   );
 }
