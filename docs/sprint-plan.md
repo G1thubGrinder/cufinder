@@ -27,7 +27,7 @@ Team:
 ### Frontend
 - Vite + React + TS project, routing (React Router), base layout (header, nav)
 - Pick a styling approach once and stick to it (Tailwind recommended for speed)
-- **Login page** wired to mock-auth endpoint
+- **Login page** with "Sign in with Google" button → backend OAuth start endpoint
 - **Post Lost Item** form (photo, description, category, location, date)
 - **Post Found Item** form (photo, description, found location, currently held at)
 - Image upload UI (preview, single file, size limit)
@@ -37,7 +37,7 @@ Team:
 ### Backend
 - Flask app factory + blueprints (`auth`, `items`, `images`)
 - MongoDB connection + collection initializers
-- **Mock auth endpoints**: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` — issue signed session cookie
+- **OAuth endpoints**: `GET /api/auth/google`, `GET /api/auth/callback`, `POST /api/auth/logout`, `GET /api/auth/me` — Google OAuth restricted to CU emails, signed session cookie set on callback
 - **GridFS image endpoints**: `POST /api/images`, `GET /api/images/:id`
 - **Item create endpoints**: `POST /api/items/lost`, `POST /api/items/found` (or unified `POST /api/items` with `type` in body)
 - Admin seed script
