@@ -1,4 +1,6 @@
-LOCATIONS = [ 
+from app.db import get_db
+
+LOCATIONS = [
     "Mahachakri Sirindhorn Building",
     "Maha Vajiravudh Building",
     "Boromratchakumari Building",
@@ -41,12 +43,27 @@ ADMINS = [
 
 
 def seed_locations(db):
-    pass
+    for name in LOCATIONS:
+        db.locations.update_one(
+            {"name": name},
+            {"$setOnInsert": {"name": name, "is_active": True}},
+            upsert=True,
+        )
+    print(f"Seeded {len(LOCATIONS)} locations")
 
 
 def seed_admins(db):
-    pass
+    for admin in ADMINS:
+        db.users.update_one(
+            {"email": admin["email"]},
+            {"$setOnInsert": admin},
+            upsert=True,
+        )
+    print(f"Seeded {len(ADMINS)} admins")
 
 
 if __name__ == "__main__":
-    print("seed script")
+    db = get_db()
+    seed_locations(db)
+    seed_admins(db)
+    print("Done")
