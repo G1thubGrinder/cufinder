@@ -1,57 +1,69 @@
-from flask import Blueprint, request, jsonify, send_file
+import io
+
 from bson import ObjectId
 from bson.errors import InvalidId
-import io
-from app.db import get_db, get_gridfs
-from app.errors import NotFound
-from app.images.schemas import MAX_BYTES, ALLOWED_MIME
+from flask import Blueprint, jsonify, request, send_file
+from gridfs.errors import NoFile
+
+from ..auth.guards import require_user
+from ..db import get_gridfs_bucket
+from ..errors import NotFound
+from .schemas import ALLOWED_MIME, MAX_BYTES
 
 images_bp = Blueprint("images", __name__, url_prefix="/api/images")
 
 
-def stub_require_user():
-    # TODO(Guy): swap with real require_user() from app.auth.guards on Day 3
-    pass
+def _bad_request(message: str):
+    return jsonify({"error": {"code": "validation_failed", "message": message}}), 400
 
 
 @images_bp.post("")
 def upload_image():
-    stub_require_user()
+    require_user()
 
-    if "file" not in request.files:
-        return jsonify({"error": "missing_file"}), 400
+    file = request.files.get("file")
+    if file is None:
+        return _bad_request("file is required.")
 
-    file = request.files["file"]
-
-    if file.filename == "" or "." not in file.filename:
-        return jsonify({"error": "invalid_filename"}), 400
+    filename = file.filename or ""
+    if filename == "" or "." not in filename:
+        return _bad_request("filename must include an extension.")
 
     if file.mimetype not in ALLOWED_MIME:
-        return jsonify({"error": "unsupported_mime"}), 400
+        return _bad_request(
+            f"unsupported mime type; allowed: {', '.join(sorted(ALLOWED_MIME))}."
+        )
 
     data = file.read()
+    if len(data) == 0:
+        return _bad_request("file is empty.")
     if len(data) > MAX_BYTES:
-        return jsonify({"error": "file_too_large"}), 400
+        return _bad_request(f"file exceeds {MAX_BYTES} bytes.")
 
-    fs = get_gridfs()
-    oid = fs.put(data, filename=file.filename, content_type=file.mimetype)
-
+    bucket = get_gridfs_bucket()
+    oid = bucket.upload_from_stream(
+        filename,
+        io.BytesIO(data),
+        metadata={"contentType": file.mimetype},
+    )
     return jsonify({"id": str(oid)}), 201
 
 
-@images_bp.get("/<id>")
-def get_image(id):
+@images_bp.get("/<image_id>")
+def get_image(image_id: str):
     try:
-        oid = ObjectId(id)
-    except InvalidId:
-        raise NotFound
+        oid = ObjectId(image_id)
+    except (InvalidId, TypeError):
+        raise NotFound("Image not found.")
 
-    fs = get_gridfs()
-    if not fs.exists(oid):
-        raise NotFound
+    bucket = get_gridfs_bucket()
+    try:
+        grid_out = bucket.open_download_stream(oid)
+    except NoFile:
+        raise NotFound("Image not found.")
 
-    grid_out = fs.get(oid)
+    metadata = grid_out.metadata or {}
     return send_file(
         io.BytesIO(grid_out.read()),
-        mimetype=grid_out.content_type,
+        mimetype=metadata.get("contentType", "application/octet-stream"),
     )
