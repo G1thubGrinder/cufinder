@@ -29,6 +29,7 @@ class DevConfig(BaseConfig):
 class ProdConfig(BaseConfig):
     DEBUG = False
     SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SAMESITE = "None"
 
 
 def get_config() -> type[BaseConfig]:

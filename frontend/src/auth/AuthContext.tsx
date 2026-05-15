@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useState, type ReactNode } from "react";
 import { authApi } from "../api/auth";
+import { apiUrl } from "../api/client";
 import { ApiError } from "../api/client-error";
 import type { User } from "../types";
 
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const login = useCallback(() => {
-    window.location.href = "/api/auth/google";
+    window.location.href = apiUrl("/api/auth/google");
   }, []);
 
   const logout = useCallback(async () => {

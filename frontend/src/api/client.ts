@@ -5,6 +5,12 @@ export { ApiError };
 
 export const USE_MOCK = (import.meta.env.VITE_USE_MOCK ?? "true") === "true";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/$/, "");
+
+export function apiUrl(path: string): string {
+  return API_BASE_URL ? `${API_BASE_URL}${path}` : path;
+}
+
 export interface ApiOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
@@ -29,7 +35,7 @@ export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
     return mockHandle<T>(method, url, opts.body);
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(apiUrl(url), {
     method,
     credentials: "include",
     headers: opts.body ? { "Content-Type": "application/json" } : undefined,
@@ -60,7 +66,7 @@ export async function uploadImage(file: File): Promise<{ id: string }> {
   }
   const fd = new FormData();
   fd.append("file", file);
-  const res = await fetch("/api/images", {
+  const res = await fetch(apiUrl("/api/images"), {
     method: "POST",
     credentials: "include",
     body: fd,
@@ -76,5 +82,5 @@ export function imageUrl(id: string | null | undefined): string | undefined {
   if (USE_MOCK) {
     return getMockImageUrl(id);
   }
-  return `/api/images/${id}`;
+  return apiUrl(`/api/images/${id}`);
 }

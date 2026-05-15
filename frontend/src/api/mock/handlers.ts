@@ -48,8 +48,6 @@ function saveState() {
 
 const STATE: MockState = loadState();
 
-const CU_EMAIL_REGEX = /^[^@\s]+@(student\.)?chula\.ac\.th$/;
-
 function delay<T>(value: T, ms = 200): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(value), ms));
 }
@@ -77,15 +75,6 @@ function requireAnyAdmin(): User {
     throw new ApiError("forbidden", "Admin only", 403);
   }
   return u;
-}
-
-function deriveDisplayName(email: string): string {
-  const local = email.split("@")[0];
-  return local
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((p) => p[0].toUpperCase() + p.slice(1))
-    .join(" ");
 }
 
 function parseQuery(url: string): { path: string; query: URLSearchParams } {
@@ -150,27 +139,6 @@ async function routeRequest(
   body: unknown,
 ): Promise<unknown> {
   // ---------- Auth ----------
-  if (path === "/api/auth/login" && method === "POST") {
-    const { email } = (body as { email?: string }) ?? {};
-    if (!email || !CU_EMAIL_REGEX.test(email)) {
-      throw new ApiError("validation_failed", "Email must be a CU address", 400);
-    }
-    let user = [...STATE.users.values()].find((u) => u.email === email);
-    if (!user) {
-      user = {
-        id: newId("usr"),
-        email,
-        display_name: deriveDisplayName(email),
-        role: "user",
-        admin_location_id: null,
-      };
-      STATE.users.set(user.id, user);
-    }
-    STATE.session.userId = user.id;
-    saveState();
-    return user;
-  }
-
   if (path === "/api/auth/logout" && method === "POST") {
     STATE.session.userId = null;
     saveState();
