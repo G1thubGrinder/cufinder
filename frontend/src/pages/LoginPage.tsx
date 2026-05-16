@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { apiUrl } from "../api/client";
 import styles from "./LoginPage.module.css";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -29,7 +30,7 @@ export default function LoginPage() {
 
         {error && <p className={styles.error}>{error}</p>}
 
-        <a href="/api/auth/google" className={styles.googleBtn}>
+        <a href={apiUrl("/api/auth/google")} className={styles.googleBtn}>
           <GoogleIcon />
           Sign in with Google
         </a>
