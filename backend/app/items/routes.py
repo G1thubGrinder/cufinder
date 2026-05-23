@@ -181,7 +181,7 @@ def create_item():
 
 @items_bp.patch("/<item_id>/status")
 def update_status(item_id: str):
-    user = require_any_admin()
+    user = require_user()
     try:
         oid = ObjectId(item_id)
     except Exception:
@@ -190,8 +190,16 @@ def update_status(item_id: str):
     item = db.items.find_one({"_id": oid})
     if item is None:
         raise NotFound("Item not found.")
-    _check_admin_authz(user, item)
     body = StatusUpdate.model_validate(request.get_json(force=True) or {})
+    is_owner = item.get("posted_by", {}).get("id") == str(user["_id"])
+    is_admin = user["role"] in ("web_admin", "location_admin")
+    if is_owner and not is_admin:
+        if body.status != "claimed":
+            raise Forbidden("You can only mark your own post as claimed.")
+    elif is_admin:
+        _check_admin_authz(user, item)
+    else:
+        raise Forbidden("You do not have permission to change this item's status.")
     db.items.update_one({"_id": oid}, {"$set": {"status": body.status}})
     updated = db.items.find_one({"_id": oid})
     return jsonify(_serialize_item(updated)), 200
@@ -199,7 +207,7 @@ def update_status(item_id: str):
 
 @items_bp.delete("/<item_id>")
 def delete_item(item_id: str):
-    user = require_any_admin()
+    user = require_user()
     try:
         oid = ObjectId(item_id)
     except Exception:
@@ -208,7 +216,12 @@ def delete_item(item_id: str):
     item = db.items.find_one({"_id": oid})
     if item is None:
         raise NotFound("Item not found.")
-    _check_admin_authz(user, item)
+    is_owner = item.get("posted_by", {}).get("id") == str(user["_id"])
+    is_admin = user["role"] in ("web_admin", "location_admin")
+    if not is_owner and not is_admin:
+        raise Forbidden("You can only delete your own posts.")
+    if is_admin and not is_owner:
+        _check_admin_authz(user, item)
     db.items.delete_one({"_id": oid})
     # TODO: orphaned GridFS image not cleaned up here — defer to v2
     return "", 204
