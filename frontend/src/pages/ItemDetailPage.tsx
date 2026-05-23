@@ -121,6 +121,7 @@ export default function ItemDetailPage() {
 
   const photo = imageUrl(item.image_id);
 
+  const isOwner = user?.id === item.posted_by.id;
   const isLocationAdminForItem =
     user?.role === "location_admin" &&
     item.type === "found" &&
@@ -265,6 +266,45 @@ export default function ItemDetailPage() {
                   onClick={remove}
                 >
                   Delete
+                </button>
+              </div>
+            </section>
+          )}
+
+          {isOwner && !canModerate && item.status === "open" && (
+            <section className={styles.section}>
+              <h2 className={styles.sectionHeading}>My post</h2>
+              <div className={styles.actionRow}>
+                <button
+                  type="button"
+                  className={styles.actionBtnPrimary}
+                  disabled={actioning}
+                  onClick={() => setStatus("claimed")}
+                >
+                  Mark as claimed
+                </button>
+                <button
+                  type="button"
+                  className={styles.actionBtnDanger}
+                  disabled={actioning}
+                  onClick={remove}
+                >
+                  Delete my post
+                </button>
+              </div>
+            </section>
+          )}
+
+          {isOwner && !canModerate && item.status !== "open" && (
+            <section className={styles.section}>
+              <div className={styles.actionRow}>
+                <button
+                  type="button"
+                  className={styles.actionBtnDanger}
+                  disabled={actioning}
+                  onClick={remove}
+                >
+                  Delete my post
                 </button>
               </div>
             </section>

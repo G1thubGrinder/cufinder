@@ -1,12 +1,12 @@
 # CUFinder Backend
 
-Flask + MongoDB API for the CUFinder lost-and-found app. See `../docs/api.md` for the wire contract and `../docs/backend.md` for the folder layout.
+Flask + MongoDB API for the CUFinder lost-and-found app. See `../docs/api.md` for the API contract.
 
 ## Prerequisites
 
 - Python 3.11+
 - A local MongoDB (default `mongodb://localhost:27017/cufinder`) **or** a MongoDB Atlas connection string
-- Google OAuth credentials — see `../CLAUDE.md` "Auth approach"
+- Google OAuth credentials (Client ID, Client Secret) — create at Google Cloud Console
 
 ## Setup
 
